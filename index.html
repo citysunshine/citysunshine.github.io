@@ -1,32 +1,108 @@
-<link rel="stylesheet" type="text/css" href="main.css">.
-<script type="text/javascript" src="./data/average_sunshine_percent.js"></script>
-<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-<script>
-google.charts.load('current', {packages: ['corechart', 'bar']});
-google.charts.setOnLoadCallback(drawBasic);
+  <html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="./data/nrmmax.json"></script>
+    <script type="text/javascript" src="./data/nrmmin.json"></script>
+    <script type="text/javascript" src="./data/locations.json"></script>
+    <script type="text/javascript">
+      const monthnames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      let ida = '13876'
+      let idb = '13963'
+ 
+      google.charts.load('current', {'packages':['corechart']});
 
-function drawBasic() {
-      var data = new google.visualization.DataTable()
-      data.addColumn('string', 'city')
-      data.addColumn('number', 'percent')
-      data.addRows(average_sunshine_percent)
-      var options = {
-        title: 'Average sunshine percent by City',
-        chartArea: {width: '80%', height: '80%'},
-        legend: {'position': 'bottom'},
-        hAxis: {
-          title: 'Average sunshine percent',
-          minValue: 0,
-          maxValue: 100
-        },
-        vAxis: {
-          title: 'City'
-        }
+      function drawMaxChart() {
+        var data = google.visualization.arrayToDataTable(makeMaxData());
+
+        var options = {
+          title: 'Max Temperature',
+          curveType: 'function',
+          legend: { position: 'bottom' }
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('nrmmax_chart'));
+        chart.draw(data, options);
       }
 
-      var chart = new google.visualization.BarChart(document.getElementById('chart_div'))
+      function drawMinChart() {
+        var data = google.visualization.arrayToDataTable(makeMinData());
 
-      chart.draw(data, options)
-    }
-</script>
-<div id="chart_div"></div>
+        var options = {
+          title: 'Min Temperature',
+          curveType: 'function',
+          legend: { position: 'bottom' }
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('nrmmin_chart'));
+        chart.draw(data, options);
+      }
+
+      function makeMaxData(){	
+        let a = nrmmax.find(x => x.loc_id == ida)
+        let b = nrmmax.find(x => x.loc_id == idb)
+        ret = []
+        ret.push(['Month', getLocName(a), getLocName(b)])
+        a.nrm_temp_max.forEach(function(x, y){ret.push([monthnames[y], x, b.nrm_temp_max[y]])})	 
+        return ret;
+      }
+
+      function makeMinData(){	
+        let a = nrmmin.find(x => x.loc_id == ida)
+        let b = nrmmin.find(x => x.loc_id == idb)
+        ret = []
+        ret.push(['Month', getLocName(a), getLocName(b)])
+        a.nrm_temp_min.forEach(function(x, y){ret.push([monthnames[y], x, b.nrm_temp_min[y]])})	 
+        return ret;
+      }
+
+      function getLocName(a){
+	return a.loc_city + ', ' + a.loc_state;
+      }
+	
+
+      function populateLocationDropdowns(){
+        populateLocationDropdown("#location-dropdown1")	
+        populateLocationDropdown("#location-dropdown2")	
+      }
+
+      function populateLocationDropdown(name){
+        let dropdown = $(name);
+
+        dropdown.empty();
+
+        dropdown.append('<option selected="true" disabled>Choose City</option>');
+        dropdown.prop('selectedIndex', 0);
+
+        // Populate dropdown with list of provinces
+	locations.forEach(function(entry) {
+          dropdown.append($('<option></option>').attr('value', entry.loc_id).text(entry.loc_name));
+        })
+      }
+
+      function redraw(t) {
+        if(t.id === 'location-dropdown1')
+          ida = t.value
+        else
+          idb = t.value
+         
+        drawMaxChart()     
+        drawMinChart()     
+      }	
+
+      function load() {
+	console.log('up');
+	populateLocationDropdowns();
+	drawMaxChart();
+	drawMinChart();
+      }
+	
+    </script>
+  </head>
+  <body onload="load()">
+    <select id="location-dropdown1" onchange="redraw(this)" name="locations">City 1</select>
+    <select id="location-dropdown2" onchange="redraw(this)" name="locations">City 2</select>
+    <div id="nrmmax_chart" style="width: 1200px; height: 500px"></div>
+    <div id="nrmmin_chart" style="width: 1200px; height: 500px"></div>
+  </body>
+</html>
